@@ -6,6 +6,8 @@
 
 Simple form validation component for material-ui library inspired by [formsy-react](https://github.com/christianalfoni/formsy-react)
 
+Unfortunatly I don't have Mac, so this library is tested only on Android.
+
 Supported types:
 + TextInput
 
