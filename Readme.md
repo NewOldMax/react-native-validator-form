@@ -4,7 +4,8 @@
 [![npm version](https://badge.fury.io/js/react-native-validator-form.svg)](https://badge.fury.io/js/react-native-validator-form)
 [![Build Status](https://travis-ci.org/NewOldMax/react-native-validator-form.svg?branch=master)](https://travis-ci.org/NewOldMax/react-native-validator-form)
 
-Simple form validation component for material-ui library inspired by [formsy-react](https://github.com/christianalfoni/formsy-react)
+Simple form validation component for React-Native inspired by [formsy-react](https://github.com/christianalfoni/formsy-react).
+Web version: [react-material-ui-form-validator](https://github.com/NewOldMax/react-material-ui-form-validator)
 
 Unfortunately I don't have Mac, so this library is tested only on Android.
 
