@@ -185,14 +185,14 @@ class ResetPasswordForm extends React.Component {
 | onSubmit        | true     | function |               | Callback for form that fires when all validations are passed                                                                 |
 | instantValidate | false    | bool     | false         | If true, form will be validated after each field change. If false, form will be validated only after clicking submit button. |
 
-#### All validated fields (ValidatorComponent)
+#### All validated fields (Input)
 
 | Prop            | Required | Type     | Default value | Description                                                                            |
 |-----------------|----------|----------|---------------|----------------------------------------------------------------------------------------|
 | validators      | false    | array    |               | Array of validators. See list of default validators above.                             |
 | errorMessages   | false    | array    |               | Array of error messages. Order of messages should be the same as `validators` prop.    |
 | name            | true     | string   |               | Name of input                                                                          |
-
+| errorStyle      | false    | object   | { container: { top: 0, left: 0, position: 'absolute' }, text: { color: 'red' }, underlineValidColor: 'gray', underlineInvalidColor: 'red' } }             | Error styles                                                                          |
 
 ### Contributing
 
