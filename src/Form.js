@@ -1,5 +1,6 @@
 /* eslint-disable */
 import React from 'react';
+import PropTypes from 'prop-types';
 import { View } from 'react-native';
 /* eslint-enable */
 import Rules from './ValidationRules';
@@ -28,6 +29,7 @@ class Form extends React.Component {
 
     componentWillMount() {
         this.childs = [];
+        this.errors = [];
         this.instantValidate = this.props.instantValidate !== undefined ? this.props.instantValidate : true;
     }
 
@@ -64,9 +66,13 @@ class Form extends React.Component {
         if (event) {
             event.preventDefault();
         }
+        this.errors = [];
         const result = this.walk(this.childs);
+        if (this.errors.length) {
+            this.props.onError(this.errors);
+        }
         if (result) {
-            this.props.onSubmit();
+            this.props.onSubmit(event);
         }
         return false;
     }
@@ -105,13 +111,14 @@ class Form extends React.Component {
         const component = this.find(this.childs, component => component.props.name === input.props.name);
         validators.map((validator) => {
             validateResult = this.getValidator(validator, value, includeRequired);
-            result.push(validateResult);
+            result.push({ input, result: validateResult });
             component.validate(component.props.value, true);
             return validator;
         });
         result.map((item) => {
-            if (!item) {
+            if (!item.result) {
                 valid = false;
+                this.errors.push(item.input);
             }
             return item;
         });
@@ -130,7 +137,7 @@ class Form extends React.Component {
 
     render() {
         // eslint-disable-next-line no-unused-vars
-        const { onSubmit, instantValidate, ...rest } = this.props;
+        const { onSubmit, instantValidate, onError, ...rest } = this.props;
         return (
             <View {...rest}>
                 {this.props.children}
@@ -144,13 +151,19 @@ Form.addValidationRule = (name, callback) => {
 };
 
 Form.childContextTypes = {
-    form: React.PropTypes.object,
+    form: PropTypes.object,
 };
 
 Form.propTypes = {
-    onSubmit: React.PropTypes.func.isRequired,
-    instantValidate: React.PropTypes.bool,
-    children: React.PropTypes.node,
+    onSubmit: PropTypes.func.isRequired,
+    instantValidate: PropTypes.bool,
+    children: PropTypes.node,
+    onError: PropTypes.func,
 };
+
+Form.defaultProps = {
+    onError: () => {},
+};
+
 
 export default Form;

@@ -1,5 +1,6 @@
 /* eslint-disable */
 import React from 'react';
+import PropTypes from 'prop-types';
 /* eslint-enable */
 import Form from './Form';
 
@@ -30,12 +31,17 @@ class Input extends React.Component {
     }
 
     componentWillReceiveProps(nextProps) {
-        if (this.instantValidate) {
+        if (this.instantValidate && nextProps.value !== this.props.value) {
             this.validate(nextProps.value);
         }
-        if (nextProps.validators && nextProps.errorMessages) {
+        if (nextProps.validators && nextProps.errorMessages &&
+            (this.props.validators !== nextProps.validators || this.props.errorMessages !== nextProps.errorMessages)) {
             this.setState({ validators: nextProps.validators, errorMessages: nextProps.errorMessages });
         }
+    }
+
+    shouldComponentUpdate(nextProps, nextState) {
+        return this.state !== nextState || this.props !== nextProps;
     }
 
     componentWillUnmount() {
@@ -84,7 +90,9 @@ class Input extends React.Component {
             }),
         );
 
-        this.setState({ isValid: valid });
+        this.setState({ isValid: valid }, () => {
+            this.props.validatorListener(this.state.isValid);
+        });
     }
 
 
@@ -98,29 +106,27 @@ class Input extends React.Component {
 }
 
 Input.contextTypes = {
-    form: React.PropTypes.object,
+    form: PropTypes.object,
 };
 
 Input.propTypes = {
-    errorMessages: React.PropTypes.oneOfType([
-        React.PropTypes.array,
-        React.PropTypes.string,
+    errorMessages: PropTypes.oneOfType([
+        PropTypes.array,
+        PropTypes.string,
     ]),
-    validators: React.PropTypes.array,
-    name: React.PropTypes.string.isRequired,
-    value: React.PropTypes.oneOfType([
-        React.PropTypes.string,
-        React.PropTypes.number,
-    ]),
-    errorStyle: React.PropTypes.shape({
-        container: React.PropTypes.shape({
-            top: React.PropTypes.number,
-            left: React.PropTypes.number,
-            position: React.PropTypes.string,
+    validators: PropTypes.array,
+    name: PropTypes.string.isRequired,
+    value: PropTypes.any,
+    validatorListener: PropTypes.func,
+    errorStyle: PropTypes.shape({
+        container: PropTypes.shape({
+            top: PropTypes.number,
+            left: PropTypes.number,
+            position: PropTypes.string,
         }),
-        text: React.PropTypes.shape({}),
-        underlineValidColor: React.PropTypes.string,
-        underlineInvalidColor: React.PropTypes.string,
+        text: PropTypes.shape({}),
+        underlineValidColor: PropTypes.string,
+        underlineInvalidColor: PropTypes.string,
     }),
 };
 
@@ -139,6 +145,7 @@ Input.defaultProps = {
     },
     errorMessages: 'error',
     validators: [],
+    validatorListener: () => {},
 };
 
 export default Input;

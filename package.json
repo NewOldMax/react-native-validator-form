@@ -1,6 +1,6 @@
 {
   "name": "react-native-validator-form",
-  "version": "0.1.2",
+  "version": "0.2.0",
   "description": "Simple validator for react-native forms.",
   "main": "./lib/index.js",
   "scripts": {

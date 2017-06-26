@@ -14,6 +14,7 @@ export default class TextValidator extends Input {
             requiredError,
             underlineColorAndroid,
             errorStyle,
+            validatorListener,
             ...rest
         } = this.props;
         /* eslint-enable */
