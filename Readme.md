@@ -76,8 +76,8 @@ class MyForm extends React.Component {
                 <TextValidator
                     name="email",
                     label="email"
-                    validators=['required', 'isEmail'],
-                    errorMessages=['This field is required", "Email invalid']
+                    validators={['required', 'isEmail']}
+                    errorMessages={['This field is required", "Email invalid']}
                     placeholder="Your email"
                     type="text"
                     keyboardType="email-address"
