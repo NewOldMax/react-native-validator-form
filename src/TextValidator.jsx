@@ -2,9 +2,9 @@
 import React from 'react';
 import { TextInput, View, Text } from 'react-native';
 /* eslint-enable */
-import ValidatorComponent from './ValidatorComponent';
+import Input from './Input';
 
-export default class TextValidator extends ValidatorComponent {
+export default class TextValidator extends Input {
 
     render() {
         /* eslint-disable no-unused-vars */

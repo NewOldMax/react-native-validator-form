@@ -7,7 +7,7 @@ import { polyfill } from 'react-lifecycles-compat';
 import Form from './Form';
 import { debounce } from './utils';
 
-class ValidatorComponent extends React.Component {
+class Input extends React.Component {
 
     static getDerivedStateFromProps(nextProps, prevState) {
         if (nextProps.validators && nextProps.errorMessages &&
@@ -113,11 +113,11 @@ class ValidatorComponent extends React.Component {
     }
 }
 
-ValidatorComponent.contextTypes = {
+Input.contextTypes = {
     form: PropTypes.object,
 };
 
-ValidatorComponent.propTypes = {
+Input.propTypes = {
     errorStyle: PropTypes.shape({
         container: PropTypes.shape({
             top: PropTypes.number,
@@ -138,7 +138,7 @@ ValidatorComponent.propTypes = {
     withRequiredValidator: PropTypes.bool,
 };
 
-ValidatorComponent.defaultProps = {
+Input.defaultProps = {
     errorStyle: {
         container: {
             top: 0,
@@ -156,6 +156,6 @@ ValidatorComponent.defaultProps = {
     validatorListener: () => {},
 };
 
-polyfill(ValidatorComponent);
+polyfill(Input);
 
-export default ValidatorComponent;
+export default Input;
