@@ -2,38 +2,13 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { View } from 'react-native';
+import Promise from 'promise-polyfill';
 /* eslint-enable */
 import Rules from './ValidationRules';
 
 class Form extends React.Component {
 
-    constructor(props) {
-        super(props);
-
-        this.submit = this.submit.bind(this);
-        this.walk = this.walk.bind(this);
-        this.attachToForm = this.attachToForm.bind(this);
-        this.detachFromForm = this.detachFromForm.bind(this);
-        this.childs = [];
-    }
-
-    getChildContext() {
-        return {
-            form: {
-                attachToForm: this.attachToForm,
-                detachFromForm: this.detachFromForm,
-                instantValidate: this.instantValidate,
-            },
-        };
-    }
-
-    componentWillMount() {
-        this.childs = [];
-        this.errors = [];
-        this.instantValidate = this.props.instantValidate !== undefined ? this.props.instantValidate : true;
-    }
-
-    getValidator(validator, value, includeRequired) {
+    static getValidator = (validator, value, includeRequired) => {
         let result = true;
         let name = validator;
         if (name !== 'required' || includeRequired) {
@@ -48,13 +23,27 @@ class Form extends React.Component {
         return result;
     }
 
-    attachToForm(component) {
+    getChildContext = () => ({
+        form: {
+            attachToForm: this.attachToForm,
+            detachFromForm: this.detachFromForm,
+            instantValidate: this.instantValidate,
+            debounceTime: this.debounceTime,
+        },
+    })
+
+    instantValidate = this.props.instantValidate !== undefined ? this.props.instantValidate : true
+    debounceTime = this.props.debounceTime
+    childs = []
+    errors = []
+
+    attachToForm = (component) => {
         if (this.childs.indexOf(component) === -1) {
             this.childs.push(component);
         }
     }
 
-    detachFromForm(component) {
+    detachFromForm = (component) => {
         const componentPos = this.childs.indexOf(component);
         if (componentPos !== -1) {
             this.childs = this.childs.slice(0, componentPos)
@@ -62,70 +51,87 @@ class Form extends React.Component {
         }
     }
 
-    submit(event) {
+    submit = (event) => {
         if (event) {
             event.preventDefault();
+            event.persist();
         }
         this.errors = [];
-        const result = this.walk(this.childs);
-        if (this.errors.length) {
-            this.props.onError(this.errors);
-        }
-        if (result) {
-            this.props.onSubmit(event);
-        }
-        return false;
-    }
-
-    walk(children) {
-        const self = this;
-        let result = true;
-        if (Array.isArray(children)) {
-            children.forEach((input) => {
-                if (!self.checkInput(input, true)) {
-                    result = false;
-                }
-                return input;
-            });
-        } else {
-            result = self.walk([children]);
-        }
-        return result;
-    }
-
-    checkInput(input) {
-        let result = true;
-        const validators = input.props.validators;
-        if (validators && !this.validate(input, true)) {
-            result = false;
-        }
-        return result;
-    }
-
-    validate(input, includeRequired) {
-        const value = input.props.value;
-        const validators = input.props.validators;
-        const result = [];
-        let valid = true;
-        let validateResult = false;
-        const component = this.find(this.childs, component => component.props.name === input.props.name);
-        validators.map((validator) => {
-            validateResult = this.getValidator(validator, value, includeRequired);
-            result.push({ input, result: validateResult });
-            component.validate(component.props.value, true);
-            return validator;
-        });
-        result.map((item) => {
-            if (!item.result) {
-                valid = false;
-                this.errors.push(item.input);
+        this.walk(this.childs).then((result) => {
+            if (this.errors.length) {
+                this.props.onError(this.errors);
             }
-            return item;
+            if (result) {
+                this.props.onSubmit(event);
+            }
+            return result;
         });
-        return valid;
     }
 
-    find(collection, fn) {
+    walk = (children, dryRun) => {
+        const self = this;
+        return new Promise((resolve) => {
+            let result = true;
+            if (Array.isArray(children)) {
+                Promise.all(children.map(input => self.checkInput(input, dryRun))).then((data) => {
+                    data.forEach((item) => {
+                        if (!item) {
+                            result = false;
+                        }
+                    });
+                    resolve(result);
+                });
+            } else {
+                self.walk([children], dryRun).then(result => resolve(result));
+            }
+        });
+    }
+
+    checkInput = (input, dryRun) => (
+        new Promise((resolve) => {
+            let result = true;
+            const validators = input.props.validators;
+            if (validators) {
+                this.validate(input, true, dryRun).then((data) => {
+                    if (!data) {
+                        result = false;
+                    }
+                    resolve(result);
+                });
+            } else {
+                resolve(result);
+            }
+        })
+    )
+
+    validate = (input, includeRequired, dryRun) => (
+        new Promise((resolve) => {
+            const { value, validators } = input.props;
+            const result = [];
+            let valid = true;
+            const validations = Promise.all(
+                validators.map(validator => (
+                    Promise.all([
+                        this.constructor.getValidator(validator, value, includeRequired),
+                    ]).then((data) => {
+                        result.push({ input, result: data && data[0] });
+                        input.validate(input.props.value, true, dryRun);
+                    })
+                )),
+            );
+            validations.then(() => {
+                result.forEach((item) => {
+                    if (!item.result) {
+                        valid = false;
+                        this.errors.push(item.input);
+                    }
+                });
+                resolve(valid);
+            });
+        })
+    )
+
+    find = (collection, fn) => {
         for (let i = 0, l = collection.length; i < l; i++) {
             const item = collection[i];
             if (fn(item)) {
@@ -135,12 +141,21 @@ class Form extends React.Component {
         return null;
     }
 
+    resetValidations = () => {
+        this.childs.forEach((child) => {
+            child.validateDebounced.cancel();
+            child.setState({ isValid: true });
+        });
+    }
+
+    isFormValid = (dryRun = true) => this.walk(this.childs, dryRun);
+
     render() {
-        // eslint-disable-next-line no-unused-vars
-        const { onSubmit, instantValidate, onError, ...rest } = this.props;
+        // eslint-disable-next-line
+        const { onSubmit, instantValidate, onError, debounceTime, children, ...rest } = this.props;
         return (
-            <View {...rest}>
-                {this.props.children}
+            <View {...rest} onSubmit={this.submit}>
+                {children}
             </View>
         );
     }
@@ -148,6 +163,10 @@ class Form extends React.Component {
 
 Form.addValidationRule = (name, callback) => {
     Rules[name] = callback;
+};
+
+Form.removeValidationRule = (name) => {
+    delete Rules[name];
 };
 
 Form.childContextTypes = {
@@ -159,11 +178,12 @@ Form.propTypes = {
     instantValidate: PropTypes.bool,
     children: PropTypes.node,
     onError: PropTypes.func,
+    debounceTime: PropTypes.number,
 };
 
 Form.defaultProps = {
     onError: () => {},
+    debounceTime: 0,
 };
-
 
 export default Form;

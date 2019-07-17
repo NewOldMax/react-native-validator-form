@@ -17,8 +17,6 @@ export default class TextValidator extends Input {
             validatorListener,
             ...rest
         } = this.props;
-        /* eslint-enable */
-        const error = this.state.isValid ? '' : this.getErrorMessage();
         let underlineColor = underlineColorAndroid;
         if (!underlineColor) {
             underlineColor = !this.state.isValid ? errorStyle.underlineInvalidColor : errorStyle.underlineValidColor;
@@ -30,9 +28,22 @@ export default class TextValidator extends Input {
                     underlineColorAndroid={underlineColor}
                     ref={(r) => { this.input = r; }}
                 />
-                <View {...errorStyle.container}>
-                    <Text style={errorStyle.text}>{error}</Text>
-                </View>
+                {this.errorText()}
+            </View>
+        );
+    }
+
+    errorText() {
+        const { errorStyle } = this.props;
+        const { isValid } = this.state;
+
+        if (isValid) {
+            return null;
+        }
+
+        return (
+            <View {...errorStyle.container}>
+                <Text style={errorStyle.text}>{this.getErrorMessage()}</Text>
             </View>
         );
     }

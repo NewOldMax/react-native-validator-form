@@ -1,107 +1,115 @@
 /* eslint-disable */
 import React from 'react';
 import PropTypes from 'prop-types';
+import Promise from 'promise-polyfill';
 /* eslint-enable */
+import { polyfill } from 'react-lifecycles-compat';
 import Form from './Form';
+import { debounce } from './utils';
 
 class Input extends React.Component {
 
-    constructor(props) {
-        super(props);
-
-        this.invalid = [];
-
-        this.form = new Form();
-
-        this.state = {
-            isValid: true,
-            errorMessages: props.errorMessages,
-            validators: props.validators,
-        };
-
-        this.validate = this.validate.bind(this);
-        this.getErrorMessage = this.getErrorMessage.bind(this);
-        this.makeInvalid = this.makeInvalid.bind(this);
-        this.instantValidate = true;
-        this.configure = this.configure.bind(this);
-    }
-
-    componentWillMount() {
-        this.configure();
-    }
-
-    componentWillReceiveProps(nextProps) {
-        if (this.instantValidate && nextProps.value !== this.props.value) {
-            this.validate(nextProps.value);
-        }
+    static getDerivedStateFromProps(nextProps, prevState) {
         if (nextProps.validators && nextProps.errorMessages &&
-            (this.props.validators !== nextProps.validators || this.props.errorMessages !== nextProps.errorMessages)) {
-            this.setState({ validators: nextProps.validators, errorMessages: nextProps.errorMessages });
+            (
+                prevState.validators !== nextProps.validators ||
+                prevState.errorMessages !== nextProps.errorMessages
+            )
+        ) {
+            return {
+                value: nextProps.value,
+                validators: nextProps.validators,
+                errorMessages: nextProps.errorMessages,
+            };
         }
+
+        return {
+            value: nextProps.value,
+        };
+    }
+
+    state = {
+        isValid: true,
+        value: this.props.value,
+        errorMessages: this.props.errorMessages,
+        validators: this.props.validators,
+    }
+
+    componentDidMount() {
+        this.configure();
     }
 
     shouldComponentUpdate(nextProps, nextState) {
         return this.state !== nextState || this.props !== nextProps;
     }
 
-    componentWillUnmount() {
-        this.context.form.detachFromForm(this);
+    componentDidUpdate(prevProps, prevState) {
+        if (this.instantValidate && this.props.value !== prevState.value) {
+            this.validateDebounced(this.props.value, this.props.withRequiredValidator);
+        }
     }
 
-    getErrorMessage() {
-        const type = typeof this.state.errorMessages;
+    componentWillUnmount() {
+        this.context.form.detachFromForm(this);
+        this.validateDebounced.cancel();
+    }
+
+    getErrorMessage = () => {
+        const { errorMessages } = this.state;
+        const type = typeof errorMessages;
 
         if (type === 'string') {
-            return this.state.errorMessages;
+            return errorMessages;
         } else if (type === 'object') {
             if (this.invalid.length > 0) {
-                return this.state.errorMessages[this.invalid[0]];
+                return errorMessages[this.invalid[0]];
             }
         }
         // eslint-disable-next-line
-        console.log('unknown errorMessages type', this.state.errorMessages);
+        console.log('unknown errorMessages type', errorMessages);
         return true;
     }
 
-    configure() {
+    instantValidate = true
+    invalid = []
+
+    configure = () => {
         this.context.form.attachToForm(this);
         this.instantValidate = this.context.form.instantValidate;
-        if (!this.props.name) {
-            throw new Error('Form field requires a name property when used');
-        }
+        this.debounceTime = this.context.form.debounceTime;
+        this.validateDebounced = debounce(this.validate, this.debounceTime);
     }
 
-    validate(value, includeRequired) {
-        this.invalid = [];
-        const result = [];
-        let valid = true;
-        this.state.validators.map((validator, i) => {
-            const obj = {};
-            obj[i] = this.form.getValidator(validator, value, includeRequired);
-            return result.push(obj);
-        });
-        result.map(item =>
-            Object.keys(item).map((key) => {
-                if (!item[key]) {
+    validate = (value, includeRequired = false, dryRun = false) => {
+        const validations = Promise.all(
+            this.state.validators.map(validator => Form.getValidator(validator, value, includeRequired)),
+        );
+
+        validations.then((results) => {
+            this.invalid = [];
+            let valid = true;
+            results.forEach((result, key) => {
+                if (!result) {
                     valid = false;
                     this.invalid.push(key);
                 }
-                return key;
-            }),
-        );
-
-        this.setState({ isValid: valid }, () => {
-            this.props.validatorListener(this.state.isValid);
+            });
+            if (!dryRun) {
+                this.setState({ isValid: valid }, () => {
+                    this.props.validatorListener(this.state.isValid);
+                });
+            }
         });
     }
 
+    isValid = () => this.state.isValid;
 
-    isValid() {
-        return this.state.isValid;
+    makeInvalid = () => {
+        this.setState({ isValid: false });
     }
 
-    makeInvalid() {
-        this.setState({ isValid: false });
+    makeValid = () => {
+        this.setState({ isValid: true });
     }
 }
 
@@ -110,14 +118,6 @@ Input.contextTypes = {
 };
 
 Input.propTypes = {
-    errorMessages: PropTypes.oneOfType([
-        PropTypes.array,
-        PropTypes.string,
-    ]),
-    validators: PropTypes.array,
-    name: PropTypes.string.isRequired,
-    value: PropTypes.any,
-    validatorListener: PropTypes.func,
     errorStyle: PropTypes.shape({
         container: PropTypes.shape({
             top: PropTypes.number,
@@ -128,6 +128,14 @@ Input.propTypes = {
         underlineValidColor: PropTypes.string,
         underlineInvalidColor: PropTypes.string,
     }),
+    errorMessages: PropTypes.oneOfType([
+        PropTypes.array,
+        PropTypes.string,
+    ]),
+    validators: PropTypes.array,
+    value: PropTypes.any,
+    validatorListener: PropTypes.func,
+    withRequiredValidator: PropTypes.bool,
 };
 
 Input.defaultProps = {
@@ -147,5 +155,7 @@ Input.defaultProps = {
     validators: [],
     validatorListener: () => {},
 };
+
+polyfill(Input);
 
 export default Input;
