@@ -1,9 +1,9 @@
 import TextValidator from './TextValidator';
 import Form from './Form';
-import Input from './Input';
+import ValidatorComponent from './ValidatorComponent';
 import ValidationRules from './ValidationRules';
 
 exports.TextValidator = TextValidator;
 exports.Form = Form;
-exports.Input = Input;
+exports.ValidatorComponent = ValidatorComponent;
 exports.ValidationRules = ValidationRules;
