@@ -1,7 +1,6 @@
 /* eslint-disable */
 import React from 'react';
 import PropTypes from 'prop-types';
-import Promise from 'promise-polyfill';
 /* eslint-enable */
 import { polyfill } from 'react-lifecycles-compat';
 import Form from './Form';
