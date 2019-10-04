@@ -71,7 +71,7 @@ class MyForm extends React.Component {
         return (
             <Form
                 ref="form"
-                onSubmit={this.handleSubmit}
+                onSubmit={this.submit}
             >
                 <TextValidator
                     name="email"
